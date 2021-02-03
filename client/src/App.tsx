@@ -11,7 +11,6 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import { Menu } from "antd";
 import { Event } from "./pages/Events";
-import { useCookies } from "react-cookie";
 import PrivateRoute from "./components/PrivateRoute";
 export interface User {
   id: number;
@@ -21,38 +20,32 @@ export interface User {
 }
 function App(): JSX.Element {
   const [user, setUser] = useState<User | undefined>();
+  const [token, setToken] = useState<string>("");
   const [events, setEvents] = useState<Event[]>([]);
-  const [cookies, setCookie, removeCookie] = useCookies([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (cookies.userInfo) {
-      setIsLoading(true);
-      getUser(cookies.userInfo.email);
-      setIsLoading(false);
-    }
-    console.log(cookies);
-  }, [cookies]);
 
   useEffect(() => {
     if (user && user.email) {
       getEvents(user.email);
     }
-  }, [user]);
+  }, [user, token]);
 
   async function getEvents(email: string) {
-    const res = await fetch(`/events?email=${email}`);
+    const myHeaders = new Headers();
+    console.log(token);
+    myHeaders.append("Authorization", `JWT ${token}`);
+    const res = await fetch(`/events?email=${email}`, { headers: myHeaders });
     const data = await res.json();
     if (data && !data.error) {
       setEvents(data as Event[]);
     }
   }
 
-  async function getUser(email: string) {
+  async function getUser(email: string, token: string) {
     const res = await fetch(`/login?email=${email}`);
     const data = await res.json();
-    console.log(data);
     setUser(data as User);
+    setToken(token);
   }
 
   return (
@@ -72,7 +65,14 @@ function App(): JSX.Element {
         <Route
           path="/"
           exact
-          component={() => <Login user={user} setUser={setUser} />}
+          component={() => (
+            <Login
+              token={token}
+              setToken={setToken}
+              user={user}
+              setUser={setUser}
+            />
+          )}
         />
         <PrivateRoute
           path="/events"
@@ -84,6 +84,8 @@ function App(): JSX.Element {
               setEvents={setEvents}
               user={user}
               setUser={setUser}
+              token={token}
+              setToken={setToken}
             />
           )}
         />
@@ -91,7 +93,13 @@ function App(): JSX.Element {
           isSignedIn={isLoading || !!user}
           path="/events/:idEvent"
           exact
-          component={() => <EventDetail setEvents={setEvents} />}
+          component={() => (
+            <EventDetail
+              token={token}
+              setToken={setToken}
+              setEvents={setEvents}
+            />
+          )}
         />
       </Switch>
     </Browser>

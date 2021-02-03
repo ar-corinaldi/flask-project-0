@@ -2,6 +2,16 @@ from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful import Api, Resource
+from flask_jwt import JWT, jwt_required, current_identity
+
+def authenticate(username, password):
+    user = User.query.filter_by(email=username).first()
+    if user and user.password==password:
+        return user
+
+def identity(payload):
+    user_id = payload['identity']
+    return User.query.filter_by(id=user_id).first()
 
 app = Flask(__name__, static_folder='client/public')
 app.config['SECRET_KEY'] = 'lkngdlfgknkrjgnekgj'
@@ -10,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 api = Api(app)
-
+jwt = JWT(app, authenticate, identity)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -50,13 +60,15 @@ posts_schema = Event_Schema(many=True)
 
 
 class ResourceListEvents(Resource):
+    @jwt_required()
     def get(self):
         email = request.args.get('email')
         user_found = User.query.filter_by(email=email).first()
         events = user_found.events
 
         return posts_schema.dump(events)
-
+    
+    @jwt_required()
     def post(self):
 
         new_event = Event(
@@ -75,33 +87,30 @@ class ResourceListEvents(Resource):
 
 
 class ResourceOneEvent(Resource):
+    @jwt_required()
     def get(self, id_event):
         event = Event.query.get_or_404(id_event)
         return post_schema.dump(event)
-
+    
+    @jwt_required()
     def put(self, id_event):
-        print(id_event)
         Event.query.filter_by(id=id_event).update({Event.name: request.json['name'],
                                                    Event.category: request.json['category'],
                                                    Event.place: request.json['place'],
                                                    Event.address: request.json['address'],
                                                    Event.start_date: request.json['start_date'],
                                                    Event.end_date: request.json['end_date'], })
-
+        
         db.session.commit()
-        return jsonify({'message': 'Success'})
-
+        even_updated = Event.query.filter_by(id=id_event).first()
+        return post_schema.dump(even_updated)
+    
+    @jwt_required()
     def delete(self, id_event):
         event = Event.query.get_or_404(id_event)
         db.session.delete(event)
         db.session.commit()
         return '', 204
-
-
-class ResourceHelloWorld(Resource):
-    def get(self):
-
-        return 'hello world'
 
 
 class ResourceLogin(Resource):
@@ -150,7 +159,6 @@ api.add_resource(ResourceListEvents, '/events')
 api.add_resource(ResourceOneEvent, '/events/<int:id_event>')
 api.add_resource(ResourceRegister, '/register')
 api.add_resource(ResourceLogin, '/login')
-api.add_resource(ResourceHelloWorld, '/')
 
 if __name__ == '__main__':
     db.create_all()

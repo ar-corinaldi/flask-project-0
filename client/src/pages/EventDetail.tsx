@@ -8,28 +8,33 @@ const { Meta } = Card;
 
 interface Props {
   setEvents: React.Dispatch<React.SetStateAction<Event[]>>;
+  token: string;
+  setToken: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const EventDetail = ({ setEvents }: Props): JSX.Element => {
+const EventDetail = ({ setEvents, token, setToken }: Props): JSX.Element => {
   const { idEvent } = useParams<{ idEvent: string }>();
   const history = useHistory();
-  const [event, setEvent] = useState<Event | undefined | null>(undefined);
+  const [event, setEvent] = useState<Event | undefined>(undefined);
   useEffect(() => {
     async function getEventDetail() {
-      const res = await fetch(`/events/${idEvent}`);
+      const myHeaders = new Headers();
+      myHeaders.append("Authorization", `JWT ${token}`);
+      const res = await fetch(`/events/${idEvent}`, { headers: myHeaders });
       const data = await res.json();
-      console.log(data);
       setEvent(data);
     }
     try {
       getEventDetail();
     } catch (e) {
-      setEvent(null);
+      setEvent(undefined);
     }
   }, []);
 
   const deleteEvent = () => {
-    fetch(`/events/${idEvent}`, { method: "DELETE" });
+    const myHeaders = new Headers();
+    myHeaders.append("Authorization", `JWT ${token}`);
+    fetch(`/events/${idEvent}`, { method: "DELETE", headers: myHeaders });
     setEvents((prev) =>
       prev.filter((event) => ((event?.id ?? "") as string) !== idEvent)
     );
@@ -72,6 +77,9 @@ const EventDetail = ({ setEvents }: Props): JSX.Element => {
           method="PUT"
           endpoint={`/events/${idEvent}`}
           event={event}
+          token={token}
+          setToken={setToken}
+          setEvent={setEvent}
         ></FormEvent>
       </Col>
     </Row>

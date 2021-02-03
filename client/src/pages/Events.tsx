@@ -64,26 +64,24 @@ const initialColumns: Column[] = [
   },
 ];
 
-const initialEvents: Event[] = [
-  {
-    frontId: uuid(),
-    name: "ping",
-    address: "pong",
-    category: "Conferencia",
-    end_date: new Date().toUTCString(),
-    place: "pung",
-    online: "Presencial",
-    start_date: new Date().toUTCString(),
-  },
-];
+const initialEvents: Event[] = [];
 
 interface Props {
   user?: User;
   setUser?: React.Dispatch<React.SetStateAction<User | undefined>>;
   events: Event[];
   setEvents: React.Dispatch<React.SetStateAction<Event[]>>;
+  token: string;
+  setToken: React.Dispatch<React.SetStateAction<string>>;
 }
-const Events = ({ user, setUser, events, setEvents }: Props): JSX.Element => {
+const Events = ({
+  user,
+  setUser,
+  events,
+  setEvents,
+  token,
+  setToken,
+}: Props): JSX.Element => {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
 
   return (
@@ -95,6 +93,8 @@ const Events = ({ user, setUser, events, setEvents }: Props): JSX.Element => {
           setEvents={setEvents}
           user={user}
           setUser={setUser}
+          token={token}
+          setToken={setToken}
         ></FormEvent>
       </Row>
       <Row>

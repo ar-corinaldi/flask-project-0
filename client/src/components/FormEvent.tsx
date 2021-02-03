@@ -26,8 +26,11 @@ interface Props {
   method: "POST" | "DELETE" | "PUT" | "GET";
   endpoint: string;
   event?: Event;
+  setEvent?: React.Dispatch<React.SetStateAction<Event | undefined>>;
   user?: User;
   setUser?: React.Dispatch<React.SetStateAction<User | undefined>>;
+  token: string;
+  setToken: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const FormEvent = ({
@@ -35,12 +38,16 @@ const FormEvent = ({
   method,
   endpoint,
   event,
+  setEvent,
   user,
   setUser,
+  token,
+  setToken,
 }: Props): JSX.Element => {
   async function postEvent(event: Event) {
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
+    myHeaders.append("Authorization", `JWT ${token}`);
     try {
       const res = await fetch(endpoint, {
         method,
@@ -48,9 +55,10 @@ const FormEvent = ({
         headers: myHeaders,
       });
       const data = await res.json();
-      if (setEvents) setEvents((prevEvents) => [data, ...prevEvents]);
+      if (setEvent) setEvent(data);
+      if (setEvents) setEvents((prevEvents) => [...prevEvents, data]);
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 

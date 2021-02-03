@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -11,7 +11,7 @@ import {
 } from "antd";
 import { User } from "../App";
 import { useHistory } from "react-router-dom";
-import { useCookies } from "react-cookie";
+
 interface UserInfo {
   email: string;
   password: string;
@@ -28,23 +28,14 @@ const tailLayout = {
 interface Props {
   user?: User;
   setUser?: React.Dispatch<React.SetStateAction<User | undefined>>;
+  token: string;
+  setToken: React.Dispatch<React.SetStateAction<string>>;
 }
-const Login = ({ user, setUser }: Props): JSX.Element => {
+const Login = ({ user, setUser, setToken, token }: Props): JSX.Element => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [formInfo, setFormInfo] = useState({});
-  const [cookies, setCookie, removeCookie] = useCookies([]);
   const history = useHistory();
 
-  const setUserCookie = (email: string, id: string) => {
-    const expirationDate = new Date();
-    expirationDate.setHours(expirationDate.getMinutes() + 15);
-    setCookie("userInfo", JSON.stringify({ id, email }), {
-      maxAge: 60 * 15, //In Seconds by react-cookie docs
-      path: "/",
-      sameSite: "strict",
-      expires: expirationDate,
-    });
-  };
   const onFinish = async (values: UserInfo) => {
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
@@ -54,17 +45,35 @@ const Login = ({ user, setUser }: Props): JSX.Element => {
       headers: myHeaders,
     });
     const data = await res.json();
-    console.log(data);
     if (data.error === "Email no existe, desea crear una cuenta nueva?") {
       setFormInfo(values);
       return showModal();
     }
+    getToken(values);
     if (data && !data.error && setUser) {
       setUser(data as User);
-      setUserCookie(data.email, data.id);
       history.push("/events");
     }
   };
+
+  async function getToken(values: UserInfo) {
+    try {
+      const myHeaders = new Headers();
+      myHeaders.append("Content-Type", "application/json");
+      const res = await fetch("/auth", {
+        method: "POST",
+        body: JSON.stringify({
+          username: values.email,
+          password: values.password,
+        }),
+        headers: myHeaders,
+      });
+      const data = await res.json();
+      setToken(data.access_token);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   const showModal = () => {
     setIsModalVisible(true);
@@ -79,11 +88,10 @@ const Login = ({ user, setUser }: Props): JSX.Element => {
       body: JSON.stringify(formInfo),
       headers: myHeaders,
     });
-
     const data = await res.json();
     if (data && !data.error && setUser) {
       setUser(data as User);
-      setUserCookie(data.email, data.id);
+      getToken(formInfo as UserInfo);
       history.push("/events");
     }
   };
@@ -93,39 +101,22 @@ const Login = ({ user, setUser }: Props): JSX.Element => {
   };
 
   const onFinishFailed = (errorInfo: any) => {
-    console.log("Failed:", errorInfo);
+    console.error("Failed:", errorInfo);
   };
 
   if (user) {
     return (
       <Row className="mt-4">
         <Col span={12} offset={6}>
-          <Form
-            {...layout}
-            name="basic"
-            onFinish={onFinish}
-            onFinishFailed={onFinishFailed}
+          <Button
+            type="primary"
+            htmlType="submit"
+            onClick={() => {
+              if (setUser) setUser(undefined);
+            }}
           >
-            <Form.Item
-              label="Tiempo de sesión"
-              name="maxAge"
-              rules={[{ required: true, message: "Tiempo de sesión!" }]}
-            >
-              <InputNumber /> Segundos
-            </Form.Item>
-            <Form.Item
-              label="Fecha de expiración"
-              name="expires"
-              rules={[{ required: true, message: "Fecha de expiración!" }]}
-            >
-              <DatePicker allowClear />
-            </Form.Item>
-            <Form.Item {...tailLayout}>
-              <Button type="primary" htmlType="submit">
-                Submit
-              </Button>
-            </Form.Item>
-          </Form>
+            Cerrar Sesión
+          </Button>
         </Col>
       </Row>
     );
