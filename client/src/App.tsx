@@ -28,7 +28,7 @@ function App(): JSX.Element {
     if (user && user.email) {
       getEvents(user.email);
     }
-  }, [user, token]);
+  }, [token]);
 
   async function getEvents(email: string) {
     const myHeaders = new Headers();

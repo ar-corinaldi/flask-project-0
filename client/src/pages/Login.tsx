@@ -52,7 +52,6 @@ const Login = ({ user, setUser, setToken, token }: Props): JSX.Element => {
     getToken(values);
     if (data && !data.error && setUser) {
       setUser(data as User);
-      history.push("/events");
     }
   };
 
@@ -92,7 +91,6 @@ const Login = ({ user, setUser, setToken, token }: Props): JSX.Element => {
     if (data && !data.error && setUser) {
       setUser(data as User);
       getToken(formInfo as UserInfo);
-      history.push("/events");
     }
   };
 

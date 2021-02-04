@@ -48,6 +48,7 @@ const FormEvent = ({
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
     myHeaders.append("Authorization", `JWT ${token}`);
+    console.log(event);
     try {
       const res = await fetch(endpoint, {
         method,
